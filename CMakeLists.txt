@@ -44,18 +44,21 @@ endforeach()
 # -----------------------------------------------------------------------------
 # third party -- SQLite
 
-#find_package(SQLite3)# todo
-
-set(SQLITE_FOUND 1)
-set(SQLite3_INCLUDE_DIRS "/usr/local/opt/sqlite/include")
-set(SQLite3_LIBRARIES "/usr/local/opt/sqlite/lib/libsqlite3.dylib")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(SQLITE_FOUND 1)
+    set(SQLite3_INCLUDE_DIRS "/usr/local/opt/sqlite/include")
+    set(SQLite3_LIBRARIES "/usr/local/opt/sqlite/lib/libsqlite3.dylib")
+else()
+    find_package(SQLite3 REQUIRED)
+endif()
 
 # -----------------------------------------------------------------------------
 # third party -- OpenCV
 
-find_package(OpenCV
+find_package(OpenCV REQUIRED
     HINTS
         "/usr/local/opt/opencv"
+        "/usr/opencv"
         "C:/Program Files/opencv/build"
 )
 
@@ -88,18 +91,20 @@ target_sources(${PROJECT_NAME} PRIVATE
     "include/shashin/util/url.h"
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_compile_definitions(${PROJECT_NAME} PRIVATE SHASHIN_DEBUG=0)
 target_compile_definitions(${PROJECT_NAME} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE "src" "include" ${THIRD_PARTY_DIR})
+
+# third party: city hash
 target_sources(${PROJECT_NAME} PRIVATE "${THIRD_PARTY_DIR}/city/City.cpp")
+
+# third party: easy exif
 target_sources(${PROJECT_NAME} PRIVATE "${THIRD_PARTY_DIR}/easyexif/exif.cpp")
-target_compile_definitions(${PROJECT_NAME} PRIVATE SHASHIN_DEBUG=0)
 
-if(${SQLITE_FOUND})
-    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${SQLite3_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} ${SQLite3_LIBRARIES})
-endif()
+# third party: SQLite3
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${SQLite3_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${SQLite3_LIBRARIES})
 
-if(${OpenCV_FOUND})
-    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
-endif()
+# third party: OpenCV
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
