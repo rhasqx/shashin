@@ -1,8 +1,8 @@
 #pragma once
 
-#if 1
+#include <functional>
+#if 0
 #include <ghc/filesystem.hpp>
-
 namespace fs {
     using namespace ghc::filesystem;
     using ifstream = ghc::filesystem::ifstream;
@@ -11,7 +11,6 @@ namespace fs {
 } // namespace fs
 #else
 #include <filesystem>
-
 namespace fs = std::filesystem;
 #endif
 

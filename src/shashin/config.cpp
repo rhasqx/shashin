@@ -1,6 +1,7 @@
 #include <shashin/config.h>
 #include <shashin/util/hash.h>
 #include <shashin/util/time.h>
+#include <mutex>
 
 namespace shashin {
 

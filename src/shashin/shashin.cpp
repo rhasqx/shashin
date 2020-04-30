@@ -5,6 +5,7 @@
 #include <shashin/util/string.h>
 #include <shashin/util/url.h>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <algorithm>
@@ -172,7 +173,7 @@ auto Shashin::exec_transaction(char const* const query, std::function<void(sqlit
 }
 
 auto Shashin::create_directories() const -> void {
-    std::vector<fs::path const> const paths{
+    std::vector<fs::path> const paths {
         m_config.shashin_path(),
         m_config.gallery_path(),
         m_config.site_path(),

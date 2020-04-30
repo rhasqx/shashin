@@ -1,6 +1,7 @@
 #include <shashin/util/time.h>
 #include <sstream>
 #include <fstream>
+#include <iomanip>
 
 namespace shashin {
 namespace util {

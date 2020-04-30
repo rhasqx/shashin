@@ -1,10 +1,11 @@
 #include <shashin/util/sqlite.h>
+#include <cstring>
 
 namespace shashin {
 namespace util {
 
 auto sqlite3_bind_string(sqlite3_stmt* stmt, int i, std::string const& str) -> void {
-    sqlite3_bind_text(stmt, i, str.c_str(), static_cast<int>(strlen(str.c_str())), nullptr);
+    sqlite3_bind_text(stmt, i, str.c_str(), static_cast<int>(std::strlen(str.c_str())), nullptr);
 }
 
 auto sqlite3_bind_string_or_null(sqlite3_stmt* stmt, int i, std::string const& str, bool valid) -> void {

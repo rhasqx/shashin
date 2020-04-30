@@ -63,6 +63,11 @@ find_package(OpenCV REQUIRED
 )
 
 # -----------------------------------------------------------------------------
+# third party -- Threads
+
+find_package(Threads REQUIRED)
+
+# -----------------------------------------------------------------------------
 # shashin
 
 add_executable(${PROJECT_NAME} "src/main.cpp")
@@ -108,3 +113,6 @@ target_link_libraries(${PROJECT_NAME} ${SQLite3_LIBRARIES})
 # third party: OpenCV
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
+
+# third party: Threads
+target_link_libraries(${PROJECT_NAME} Threads::Threads)

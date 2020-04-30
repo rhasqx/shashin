@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include <functional>
 
 namespace shashin {
 namespace util {

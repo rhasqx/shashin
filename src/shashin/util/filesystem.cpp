@@ -1,4 +1,5 @@
 #include <shashin/util/filesystem.h>
+#include <vector>
 
 auto list_directory_recursive(fs::path const& base, std::function<bool(fs::path const& path)> const& condition) -> std::vector<fs::path> {
     std::vector<fs::path> paths;

@@ -1,6 +1,7 @@
 #include <shashin/util/hash.h>
 #include <shashin/util/string.h>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
