@@ -9,7 +9,7 @@ auto process_parallel(std::function<void(int worker_number, int lower_bound, int
     std::vector<std::thread> workers;
     for (auto worker_number{0}; worker_number < worker_size; ++worker_number) {
         auto const lower_bound{chunk_size * worker_number};
-        auto const upper_bound{(worker_number < worker_size - 1) ? (chunk_size * worker_number + (chunk_size > 0 ? chunk_size - 1 : 0)) : list_size};
+        auto const upper_bound{(worker_number < worker_size - 1) ? (chunk_size * worker_number + (chunk_size > 0 ? chunk_size : 0)) : list_size};
         if (lower_bound == 0 && upper_bound == 0) {
             continue;
         }
