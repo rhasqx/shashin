@@ -95,8 +95,8 @@ Shashin::Shashin(fs::path const& project_path, std::string const& watermark_text
     sync_images();
     update_exif();
     dump_list_html();
-    create_gallery_files();
     process_images();
+    create_gallery_files();
 
     timestamp_end = util::make_timestamp();
     std::cout << "---------------------------------" << "\n"
@@ -775,7 +775,16 @@ auto Shashin::process_images() const -> void {
     util::process_parallel([this, &images](int worker_number, int lower_bound, int upper_bound) {
         (void)worker_number;
         auto const extension{".jpg"};
+        auto percent{0};
         for (auto i{lower_bound}; i < upper_bound; ++i) {
+            if (worker_number == 0) {
+                auto temp{int(double(i) / double(upper_bound) * 100) % 101};
+                if (temp > percent) {
+                    percent = temp;
+                    std::cout << "        " << "   " << "  " << std::setfill(' ') << std::setw(3) << percent << " " << "%" << "\n" << std::flush;
+                }
+            }
+
             auto [path, hash, small, medium, large]{images[size_t(i)]};
 
             auto const src_path{fs::path{m_config.gallery_path()}.append(path)};

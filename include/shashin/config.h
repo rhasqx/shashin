@@ -35,8 +35,8 @@ private:
 
     std::string const m_shashin_dir{"_shashin"};
     std::string const m_gallery_dir{"_gallery"};
-    std::string const m_site_dir{"_site"};
-    std::string const m_data_dir{"_data"};
+    std::string const m_site_dir{"public"};
+    std::string const m_data_dir{"db"};
     std::string const m_cache_dir{"cache"};
     std::string const m_database_file{"database.sqlite3"};
     std::string const m_salt_small_file{"salt_small.txt"};

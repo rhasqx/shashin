@@ -113,11 +113,16 @@ auto resize(cv::Mat& src_mat, fs::path const& dst_path, int size, std::string co
     try {
         auto const width{(src_mat.cols > src_mat.rows) ? size : int(std::ceil(double(size) * (double(src_mat.cols) / double(src_mat.rows))))};
         auto const height{(src_mat.cols > src_mat.rows) ? int(std::ceil(double(size) * (double(src_mat.rows) / double(src_mat.cols)))) : size};
+        std::vector<int> const params{{
+            cv::IMWRITE_JPEG_QUALITY, 80,
+            cv::IMWRITE_JPEG_PROGRESSIVE, 1,
+            cv::IMWRITE_JPEG_OPTIMIZE, 1,
+        }};
 
         cv::Mat dst_mat{cv::imread(dst_path)};
         cv::resize(src_mat, dst_mat, cv::Size(width, height), 0, 0, cv::INTER_AREA);
         watermark(dst_mat, text, fontsize, margin, thickness);
-        cv::imwrite(dst_path, dst_mat);
+        cv::imwrite(dst_path, dst_mat, params);
     } catch (std::exception const& e) {
         std::cerr << "Error: " << e.what()
             #ifdef SHASHIN_DEBUG
@@ -136,6 +141,11 @@ auto crop(cv::Mat& src_mat, fs::path const& dst_path, int cropped_width, int cro
         auto const ratio{std::min(double(src_mat.cols) / double(cropped_width), double(src_mat.rows) / double(cropped_height))};
         auto const width{int(std::ceil(src_mat.cols / ratio))};
         auto const height{int(std::ceil(src_mat.rows / ratio))};
+        std::vector<int> const params{{
+            cv::IMWRITE_JPEG_QUALITY, 80,
+            cv::IMWRITE_JPEG_PROGRESSIVE, 1,
+            cv::IMWRITE_JPEG_OPTIMIZE, 1,
+        }};
 
         cv::Mat dst_mat{cv::imread(dst_path)};
         cv::resize(src_mat, dst_mat, cv::Size(width, height), 0, 0, cv::INTER_AREA);
@@ -147,7 +157,7 @@ auto crop(cv::Mat& src_mat, fs::path const& dst_path, int cropped_width, int cro
         //std::cerr << roi.x << "," << roi.y << " " << roi.width << "x" << roi.height << " " << width << "x" << height << "\n";
         cv::Mat dst2_mat{dst_mat(roi)};
         watermark(dst2_mat, text, fontsize, margin, thickness);
-        cv::imwrite(dst_path, dst2_mat);
+        cv::imwrite(dst_path, dst2_mat, params);
     } catch (std::exception const& e) {
         std::cerr << "Error: " << e.what()
             #ifdef SHASHIN_DEBUG
