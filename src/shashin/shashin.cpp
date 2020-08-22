@@ -53,6 +53,15 @@ Shashin::Shashin(fs::path const& project_path, std::string const& watermark_text
             large varchar NOT NULL,
             exif integer NOT NULL DEFAULT 0,
 
+            width integer NOT NULL DEFAULT 0,
+            height integer NOT NULL DEFAULT 0,
+            large_width integer NOT NULL DEFAULT 0,
+            large_height integer NOT NULL DEFAULT 0,
+            medium_width integer NOT NULL DEFAULT 0,
+            medium_height integer NOT NULL DEFAULT 0,
+            small_width integer NOT NULL DEFAULT 0,
+            small_height integer NOT NULL DEFAULT 0,
+
             captured_at varchar NOT NULL DEFAULT '',
             fstop varchar NOT NULL DEFAULT '',
             exposure_time varchar NOT NULL DEFAULT '',
@@ -94,9 +103,9 @@ Shashin::Shashin(fs::path const& project_path, std::string const& watermark_text
     sync_nodes();
     sync_images();
     update_exif();
-    dump_list_html();
     process_images();
     create_gallery_files();
+    dump_list_html();
 
     timestamp_end = util::make_timestamp();
     std::cout << "---------------------------------" << "\n"
@@ -740,7 +749,7 @@ auto Shashin::process_images() const -> void {
     auto timestamp_end{util::make_timestamp()};
     auto timestamp_start{util::make_timestamp()};
 
-    std::vector<std::tuple<std::string, std::string, std::string, std::string, std::string>> images;
+    std::vector<std::tuple<std::string, std::string, std::string, std::string, std::string, int, int, int, int, int, int, int, int>> images;
 
     exec_transaction(R"sql(
         SELECT
@@ -748,7 +757,15 @@ auto Shashin::process_images() const -> void {
             n.hash,
             i.small,
             i.medium,
-            i.large
+            i.large,
+            i.width,
+            i.height,
+            i.large_width,
+            i.large_height,
+            i.medium_width,
+            i.medium_height,
+            i.small_width,
+            i.small_height
         FROM images i INNER JOIN nodes n ON i.parent = n.path
         ORDER BY i.parent, i.captured_at;
     )sql", [this, &images](sqlite3_stmt* stmt) -> void {
@@ -761,7 +778,15 @@ auto Shashin::process_images() const -> void {
             auto small{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
             auto medium{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
             auto large{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
-            images.push_back({path, hash, small, medium, large});
+            auto width{sqlite3_column_int(stmt, ++i)};
+            auto height{sqlite3_column_int(stmt, ++i)};
+            auto large_width{sqlite3_column_int(stmt, ++i)};
+            auto large_height{sqlite3_column_int(stmt, ++i)};
+            auto medium_width{sqlite3_column_int(stmt, ++i)};
+            auto medium_height{sqlite3_column_int(stmt, ++i)};
+            auto small_width{sqlite3_column_int(stmt, ++i)};
+            auto small_height{sqlite3_column_int(stmt, ++i)};
+            images.push_back({path, hash, small, medium, large, width, height, large_width, large_height, medium_width, medium_height, small_width, small_height});
         }
         if (rc != SQLITE_DONE) {
             std::cerr << "Error: " << sqlite3_errmsg(m_db)
@@ -785,7 +810,7 @@ auto Shashin::process_images() const -> void {
                 }
             }
 
-            auto [path, hash, small, medium, large]{images[size_t(i)]};
+            auto [path, hash, small, medium, large, width, height, large_width, large_height, medium_width, medium_height, small_width, small_height]{images[size_t(i)]};
 
             auto const src_path{fs::path{m_config.gallery_path()}.append(path)};
             auto const dst_path_small{fs::path{m_config.cache_path()}.append("small").append(hash).append(small + extension)};
@@ -794,9 +819,14 @@ auto Shashin::process_images() const -> void {
 
             if (!fs::exists(dst_path_small) || !fs::exists(dst_path_medium) || !fs::exists(dst_path_large)) {
                 cv::Mat src_mat{cv::imread(src_path)};
-                if (!fs::exists(dst_path_small)) {
+                std::get<5>(images[size_t(i)]) = src_mat.size().width;
+                std::get<6>(images[size_t(i)]) = src_mat.size().height;
+
+                if (!fs::exists(dst_path_small) || (std::get<11>(images[size_t(i)]) == 0 || std::get<12>(images[size_t(i)]) == 0)) {
                     try {
                         util::crop(src_mat, dst_path_small, m_config.small_width(), m_config.small_height());
+                        std::get<11>(images[size_t(i)]) = m_config.small_width();
+                        std::get<12>(images[size_t(i)]) = m_config.small_height();
                     } catch (std::exception const& e) {
                         std::cerr << __FILE__ << ":" << __LINE__ << "\n"
                                   << "file: " << src_path << "\n"
@@ -805,16 +835,57 @@ auto Shashin::process_images() const -> void {
                         exit(0);
                     }
                 }
-                if (!fs::exists(dst_path_medium)) {
+                if (!fs::exists(dst_path_medium) || (std::get<9>(images[size_t(i)]) == 0 || std::get<10>(images[size_t(i)]) == 0)) {
                     util::resize(src_mat, dst_path_medium, m_config.medium_size(), m_config.watermark_text(), 24, 16, 4);
+                    cv::Mat tmp_mat{cv::imread(dst_path_medium)};
+                    std::get<9>(images[size_t(i)]) = tmp_mat.size().width;
+                    std::get<10>(images[size_t(i)]) = tmp_mat.size().height;
                 }
-                if (!fs::exists(dst_path_large)) {
+                if (!fs::exists(dst_path_large) || (std::get<7>(images[size_t(i)]) == 0 || std::get<8>(images[size_t(i)]) == 0)) {
                     util::resize(src_mat, dst_path_large, m_config.large_size(), m_config.watermark_text(), 36, 32, 6);
+                    cv::Mat tmp_mat{cv::imread(dst_path_large)};
+                    std::get<7>(images[size_t(i)]) = tmp_mat.size().width;
+                    std::get<8>(images[size_t(i)]) = tmp_mat.size().height;
                 }
             }
-
         }
     }, int(images.size()));
+
+    exec_transaction(R"sql(
+        UPDATE images SET
+            width = ?,
+            height = ?,
+            large_width = ?,
+            large_height = ?,
+            medium_width = ?,
+            medium_height = ?,
+            small_width = ?,
+            small_height = ?,
+
+            updated_at = ?
+        WHERE path = ?;
+    )sql", [this, &images](sqlite3_stmt* stmt) -> void {
+        auto i{0};
+        for (auto const& image: images) {
+            auto [path, hash, small, medium, large, width, height, large_width, large_height, medium_width, medium_height, small_width, small_height]{image};
+
+            i = 0;
+            util::sqlite3_bind_int_or_null(stmt, ++i, width); // width
+            util::sqlite3_bind_int_or_null(stmt, ++i, height); // height
+            util::sqlite3_bind_int_or_null(stmt, ++i, large_width); // large_width
+            util::sqlite3_bind_int_or_null(stmt, ++i, large_height); // large_height
+            util::sqlite3_bind_int_or_null(stmt, ++i, medium_width); // medium_width
+            util::sqlite3_bind_int_or_null(stmt, ++i, medium_height); // medium_height
+            util::sqlite3_bind_int_or_null(stmt, ++i, small_width); // small_width
+            util::sqlite3_bind_int_or_null(stmt, ++i, small_height); // small_height
+
+            util::sqlite3_bind_string(stmt, ++i, m_config.current_time()); // updated_at
+            util::sqlite3_bind_string(stmt, ++i, path); // path
+
+            sqlite3_step(stmt);
+            sqlite3_reset(stmt);
+        }
+    });
 
     timestamp_end = util::make_timestamp();
     duration_ms = util::time_between(timestamp_start, timestamp_end);
@@ -825,7 +896,6 @@ auto Shashin::create_gallery_files() const -> void {
     long long duration_ms{0};
     auto timestamp_end{util::make_timestamp()};
     auto timestamp_start{util::make_timestamp()};
-
 
     // nodes
     {
@@ -910,6 +980,14 @@ auto Shashin::create_gallery_files() const -> void {
            << "\"" << "small_path" << "\"" << ","
            << "\"" << "medium_path" << "\"" << ","
            << "\"" << "large_path" << "\"" << ","
+           << "\"" << "width" << "\"" << ","
+           << "\"" << "height" << "\"" << ","
+           << "\"" << "large_width" << "\"" << ","
+           << "\"" << "large_height" << "\"" << ","
+           << "\"" << "medium_width" << "\"" << ","
+           << "\"" << "medium_height" << "\"" << ","
+           << "\"" << "small_width" << "\"" << ","
+           << "\"" << "small_height" << "\"" << ","
            << "\"" << "captured_at" << "\"" << ","
            << "\"" << "fstop" << "\"" << ","
            << "\"" << "exposure_time" << "\"" << ","
@@ -934,6 +1012,14 @@ auto Shashin::create_gallery_files() const -> void {
                 i.small,
                 i.medium,
                 i.large,
+                i.width,
+                i.height,
+                i.large_width,
+                i.large_height,
+                i.medium_width,
+                i.medium_height,
+                i.small_width,
+                i.small_height,
                 i.created_at,
                 i.updated_at,
                 i.captured_at,
@@ -966,6 +1052,14 @@ auto Shashin::create_gallery_files() const -> void {
                 auto small{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
                 auto medium{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
                 auto large{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
+                auto width{sqlite3_column_int(stmt, ++i)};
+                auto height{sqlite3_column_int(stmt, ++i)};
+                auto large_width{sqlite3_column_int(stmt, ++i)};
+                auto large_height{sqlite3_column_int(stmt, ++i)};
+                auto medium_width{sqlite3_column_int(stmt, ++i)};
+                auto medium_height{sqlite3_column_int(stmt, ++i)};
+                auto small_width{sqlite3_column_int(stmt, ++i)};
+                auto small_height{sqlite3_column_int(stmt, ++i)};
                 auto created_at{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
                 auto updated_at{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
                 auto captured_at{std::string{reinterpret_cast<char const* const>(sqlite3_column_text(stmt, ++i))}};
@@ -1001,6 +1095,14 @@ auto Shashin::create_gallery_files() const -> void {
                    << "\"" << dst_path_small << "\"" << ","
                    << "\"" << dst_path_medium << "\"" << ","
                    << "\"" << dst_path_large << "\"" << ","
+                   << "\"" << width << "\"" << ","
+                   << "\"" << height << "\"" << ","
+                   << "\"" << large_width << "\"" << ","
+                   << "\"" << large_height << "\"" << ","
+                   << "\"" << medium_width << "\"" << ","
+                   << "\"" << medium_height << "\"" << ","
+                   << "\"" << small_width << "\"" << ","
+                   << "\"" << small_height << "\"" << ","
                    << "\"" << captured_at << "\"" << ","
                    << "\"" << fstop << "\"" << ","
                    << "\"" << exposure_time << "\"" << ","
